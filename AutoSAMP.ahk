@@ -1,9 +1,10 @@
-global AUTOSAMP_VERSION := 1.0
+global AUTOSAMP_VERSION := 1.1
 
 global GTA_CPED_PTR := 0xB6F5F0
 global GTA_VEHICLE_PTR := 0xBA18FC
 
 global SAMP_MAX_PLAYERS          := 1004
+global SAMP_MAX_VEHICLES     := 2000
 global SERVER_SPEED_KOEFF	 := 1.425
 
 global SAMP_CNETGAME := [0x26E8DC]
@@ -33,6 +34,8 @@ global SAMP_CINPUT := [0x26E8CC]
     global SAMP_CINPUT_INPUT := [0x1565]
 
 global SAMP_CLOCALPLAYER := [0x4A80]
+    global SAMP_CLOCALPLAYER_CURRENTVEHICLE := [0xFC]
+    global SAMP_CLOCALPLAYER_LASTVEHICLE := [0xFE]
     global SAMP_CLOCALPLAYER_CHAT := [0x5820]
 
 global SAMP_CHATINPUT := [0x141A78]
@@ -56,18 +59,26 @@ global SAMP_CSCOREBOARD := [0x26E894]
 
 global SAMP_POOLS := [0x3DE]
     global SAMP_POOLS_PLAYER := [0x8]
+    global SAMP_POOLS_VEHICLE := [0xC]
         global SAMP_POOLS_PLAYER_LARGESTID := [0x0]
         global SAMP_POOLS_PLAYER_LOCALPLAYER_PING := [0x2F14]
         global SAMP_POOLS_PLAYER_LOCALPLAYER_SCORE := [0x2F18]
         global SAMP_POOLS_PLAYER_LOCALPLAYER_ID := [0x2F1C]
+        global SAMP_POOLS_PLAYER_LOCALPLAYER_DATA := [0x2F3A]
+            global SAMP_POOLS_PLAYER_LOCALPLAYER_DATA_ANIMATION := [0x100]
         global SAMP_POOLS_PLAYER_REMOTEPLAYER := [0x4]
             global SAMP_POOLS_PLAYER_REMOTEPLAYER_SCORE := [0x24]
             global SAMP_POOLS_PLAYER_REMOTEPLAYER_PING := [0x4]
             global SAMP_POOLS_PLAYER_REMOTEPLAYER_NICK := [0xC]
             global SAMP_POOLS_PLAYER_REMOTEPLAYER_SIZE := [0x1C]
+            global SAMP_POOLS_PLAYER_REMOTEPLAYER_DATA := [0x0]
 
 global SAMP_CGAME := [0x26E8F4]
     global SAMP_CGAME_DISPLAYGAMETEXT := [0xA05D0]
+
+global SAMP_CREMOTEPLAYER_VEHICLEID := [0xA]
+global SAMP_CREMOTEPLAYER_INCARTARGEDPOSITION := [0x12C]
+global SAMP_CREMOTEPLAYER_TEAM := [0x109]
 
 
 global DIALOG_STYLE_MSGBOX			        := 0
@@ -118,6 +129,8 @@ global datatypes := {"Int64" : 8, "Double" : 8, "UInt" : 4, "Int" : 4, "Float" :
 global scoreboardTick 						:= 0
 global playerTick							:= 0
 global oPlayers								:= ""
+global vehicleTick							:= 0
+global oVehicles							:= ""
 
 class AutoSAMP 
 {
@@ -347,11 +360,11 @@ class AutoSAMP
 
 	    for i, o in oPlayers {
 		    if (exact) {
-			    if (o = playerName)
+			    if (o[1] = playerName)
 				    return i
 		    }
 		    else {
-			    if (InStr(o, playerName) == 1)
+			    if (InStr(o[1], playerName) == 1)
 				    return i
 		    }
 	    }
@@ -515,9 +528,11 @@ class AutoSAMP
 	    {
 		    if (!(dwRemoteplayer := AutoSAMP.__DWORD(AutoSAMP.hGTA, dwPlayers, [SAMP_POOLS_PLAYER_REMOTEPLAYER[AutoSAMP.SAMP_VERSION] + (A_Index - 1) * 4])))
 			    continue
+
+            dwRemoteplayerData := AutoSAMP.__DWORD(AutoSAMP.hGTA, dwRemoteplayer, [SAMP_POOLS_PLAYER_REMOTEPLAYER_DATA[AutoSAMP.SAMP_VERSION]])  
 		
-		    oPlayers[A_Index - 1] := (AutoSAMP.__DWORD(AutoSAMP.hGTA, dwRemoteplayer, [SAMP_POOLS_PLAYER_REMOTEPLAYER_SIZE[AutoSAMP.SAMP_VERSION]]) > 15 ? AutoSAMP.__READSTRING(AutoSAMP.hGTA, dwRemoteplayer, [SAMP_POOLS_PLAYER_REMOTEPLAYER_NICK[AutoSAMP.SAMP_VERSION], 0x0], 25) : AutoSAMP.__READSTRING(AutoSAMP.hGTA, dwRemoteplayer, [SAMP_POOLS_PLAYER_REMOTEPLAYER_NICK[AutoSAMP.SAMP_VERSION]], 16))
-	    }
+		    oPlayers[A_Index - 1] := [(AutoSAMP.__DWORD(AutoSAMP.hGTA, dwRemoteplayer, [SAMP_POOLS_PLAYER_REMOTEPLAYER_SIZE[AutoSAMP.SAMP_VERSION]]) > 15 ? AutoSAMP.__READSTRING(AutoSAMP.hGTA, dwRemoteplayer, [SAMP_POOLS_PLAYER_REMOTEPLAYER_NICK[AutoSAMP.SAMP_VERSION], 0x0], 25) : AutoSAMP.__READSTRING(AutoSAMP.hGTA, dwRemoteplayer, [SAMP_POOLS_PLAYER_REMOTEPLAYER_NICK[AutoSAMP.SAMP_VERSION]], 16)), AutoSAMP.__DWORD(AutoSAMP.hGTA, dwRemoteplayer, [0x0, 0x0, 676])]
+        }
 
 	    playerTick := A_TickCount
 	    return true
@@ -530,7 +545,7 @@ class AutoSAMP
 	    playerCount := 1
 	    for i, o in oPlayers {
 		    playerCount++
-		    AutoSAMP.addChatMessage("ID: " i ", Name: " o)
+		    AutoSAMP.addChatMessage("ID: " i ", Name: " o[1])
 	    }
 
 	    AutoSAMP.addChatMessage("Player Count: " playerCount)
@@ -563,6 +578,65 @@ class AutoSAMP
     playSound(soundID) {
 	    return AutoSAMP.checkHandles() && AutoSAMP.CALL(AutoSAMP.hGTA, 0x506EA0, [["i", 0xB6BC90], ["i", soundID], ["i", 0], ["f", 1.0]], false, true)
     }
+
+    ; VERSION 1.1
+    getPlayerAnim() {
+	    return !AutoSAMP.checkHandles() ? false : AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_LOCALPLAYER_DATA[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_LOCALPLAYER_DATA_ANIMATION[AutoSAMP.SAMP_VERSION]], "Short")
+    }
+
+    getVehiclePosition(vehicleID) {
+	    return !AutoSAMP.checkHandles() || vehicleID < 1 || vehicleID > SAMP_MAX_VEHICLES ? "" : [AutoSAMP.__READMEM(AutoSAMP.hGTA, (dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_VEHICLE[AutoSAMP.SAMP_VERSION], vehicleID * 4 + 0x1134, 0x40, 0x14])), [0x30], "Float"), AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [0x34], "Float"), AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [0x38], "Float")]
+    }
+
+    getVehicleID() {
+	    if (!AutoSAMP.checkHandles() || !AutoSAMP.isPlayerInAnyVehicle())
+		    return false
+
+	    return AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_LOCALPLAYER_DATA[AutoSAMP.SAMP_VERSION], AutoSAMP.isPlayerDriver() ? SAMP_CLOCALPLAYER_CURRENTVEHICLE[AutoSAMP.SAMP_VERSION] : SAMP_CLOCALPLAYER_LASTVEHICLE[AutoSAMP.SAMP_VERSION]], "UShort")
+    }
+
+    getPlayerVehicleID(playerID) {
+	    return playerID < 0 || playerID >= SAMP_MAX_PLAYERS || !AutoSAMP.checkHandles() ? "" : AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_REMOTEPLAYER[AutoSAMP.SAMP_VERSION] + playerID * 4, SAMP_POOLS_PLAYER_REMOTEPLAYER_DATA[AutoSAMP.SAMP_VERSION], SAMP_CREMOTEPLAYER_VEHICLEID[AutoSAMP.SAMP_VERSION]], "UShort")
+    }
+
+    getPlayerVehiclePos(playerID) {
+	    return playerID < 0 || playerID >= SAMP_MAX_PLAYERS || !AutoSAMP.checkHandles() ? "" : [AutoSAMP.__READMEM(AutoSAMP.hGTA, (dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_REMOTEPLAYER[AutoSAMP.SAMP_VERSION] + playerID * 4, SAMP_POOLS_PLAYER_REMOTEPLAYER_DATA[AutoSAMP.SAMP_VERSION]])), [SAMP_CREMOTEPLAYER_INCARTARGEDPOSITION[AutoSAMP.SAMP_VERSION]], "Float"), AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwAddress, [SAMP_CREMOTEPLAYER_INCARTARGEDPOSITION[AutoSAMP.SAMP_VERSION] + 0x4], "Float"), AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [SAMP_CREMOTEPLAYER_INCARTARGEDPOSITION[AutoSAMP.SAMP_VERSION] + 0x8], "Float")]
+    }
+
+    getPlayerTeamID(playerID) {
+	    return playerID < 0 || playerID >= SAMP_MAX_PLAYERS || !AutoSAMP.checkHandles() ? "" : AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_REMOTEPLAYER[AutoSAMP.SAMP_VERSION] + playerID * 4, SAMP_POOLS_PLAYER_REMOTEPLAYER_DATA[AutoSAMP.SAMP_VERSION], SAMP_CREMOTEPLAYER_TEAM[AutoSAMP.SAMP_VERSION]], "UChar")
+    }
+
+    getTargetPed() {
+	    if(!AutoSAMP.checkHandles())
+            return 0
+
+	    dwAddress := AutoSAMP.readDWORD(AutoSAMP.hGTA, 0xB6F3B8)
+	    if(!dwAddress)
+		    return 0
+	    dwAddress := AutoSAMP.readDWORD(AutoSAMP.hGTA, dwAddress + 0x79C)
+	    return dwAddress
+    }
+
+    getIdByPed(dwPed) {
+        dwPed += 0
+        dwPed := Floor(dwPed)
+	
+	    if(!dwPed)
+		    return -1
+
+        if (!AutoSAMP.updatePlayers())
+		    return -1
+
+	    for i, o in oPlayers
+        {
+		    if(o[2] == dwPed)
+			    return i
+        }
+        return -1
+    }
+
+    
 
     ; [-----------------------------------------------------------------------------------------------------]
     
@@ -951,5 +1025,22 @@ class AutoSAMP
 			    return false
 		    dwAddress := NumGet(dwRead, 0, "UInt")
 	    }
+    }
+
+    readDWORD(hProcess, dwAddress) {
+        if(!hProcess) {
+            ErrorLevel := ERROR_INVALID_HANDLE
+            return 0
+        }
+
+        VarSetCapacity(dwRead, 4)    
+        dwRet := DllCall("ReadProcessMemory", "UInt",  hProcess, "UInt",  dwAddress, "Str",   dwRead, "UInt",  4, "UInt*", 0)
+        if(dwRet == 0) {
+            ErrorLevel := ERROR_READ_MEMORY
+            return 0
+        }
+
+        ErrorLevel := ERROR_OK
+        return NumGet(dwRead, 0, "UInt")
     }
 }

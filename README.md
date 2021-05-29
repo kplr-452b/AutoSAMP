@@ -98,6 +98,13 @@ AutoSAMP - библиотека предназначенная для работ
   72. AutoSAMP.getPlayerPos() /* Возвращает позицию локального игрока */
   73. AutoSAMP.getDistance(pos1, pos2) /* Возвращает дистанцию между двумя точками (pos1 - координаты первой точки, pos2 - координаты второй точки) */
   74. AutoSAMP.playSound(soundID) /* Проигрывает звук (soundID - ID звука) */
+  75. AutoSAMP.getPlayerAnim() /* Возвращает ID анимации локального игрока */
+  76. AutoSAMP.getVehiclePosition(vehicleID) /* Возвращает расположение транспорта по ID (vehicleID - ID транспорта) */
+  77. AutoSAMP.getVehicleID() /* Возвращает ID транспорта, в котором локальный игрок находится */
+  78. AutoSAMP.getPlayerVehicleID(playerID) /* Возвращает ID транспорта, в котором игрок находится (playerID - ID игрока) */
+  79. AutoSAMP.getPlayerVehiclePos(playerID) /* Возвращает расположения транспорта, в котором игрок находится (playerID - ID игрока) */
+  80. AutoSAMP.getTargetPed() /* Возвращает PED выделенного игрока */
+  81. AutoSAMP.getIdByPed(dwPed) /* Возвращает ID игрока по PED (dwPed - PED игрока) */
 ```
 
 ## Дополнительная информация

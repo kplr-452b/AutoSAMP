@@ -10,7 +10,7 @@ AutoSAMP - библиотека предназначенная для работ
 ```js
   #Include, AutoSAMP.ahk
 ```
-3. В начале кода введите:
+3. В начале кода:
 
 ```js
   global AutoSAMP := new AutoSAMP(GTAPID, sampModule)

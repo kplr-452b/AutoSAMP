@@ -3,12 +3,14 @@ AutoSAMP - библиотека предназначенная для работ
 
 ## Начало работы
 
-1. Подключите AutoSAMP в ваш скрипт:
+1. Для стабильной работы используйте AHK ANSI 32-bit
+
+2. Подключите AutoSAMP в ваш скрипт:
 
 ```js
   #Include, AutoSAMP.ahk
 ```
-2. В начале кода введите:
+3. В начале кода введите:
 
 ```js
   global AutoSAMP := new AutoSAMP(GTAPID, sampModule)

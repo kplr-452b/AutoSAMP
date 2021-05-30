@@ -105,6 +105,26 @@ AutoSAMP - библиотека предназначенная для работ
   79. AutoSAMP.getPlayerVehiclePos(playerID) /* Возвращает расположения транспорта, в котором игрок находится (playerID - ID игрока) */
   80. AutoSAMP.getTargetPed() /* Возвращает PED выделенного игрока */
   81. AutoSAMP.getIdByPed(dwPed) /* Возвращает ID игрока по PED (dwPed - PED игрока) */
+  82. AutoSAMP.getGameScreenWidthHeight() /* Возвращает разрешение экрана */
+  83. AutoSAMP.getVehiclePointer(vehicleID) /* Возвращает адрес памяти транспорта (vehicleID - ID транспорта) */
+  84. AutoSAMP.isCheckpointSet() /* Проверяет установлен ли чекпоинт */
+  85. AutoSAMP.toggleCheckpoint(toggle) /* Включает чекпоинт (toggle - 0 выключить, 1 включить) */
+  86. AutoSAMP.isRaceCheckpointSet() /* Проверяет установлен ли чекпоинт */
+  87. AutoSAMP.toggleRaceCheckpoint(toggle) /* Включает чекпоинт (toggle - 0 выключить, 1 включить) */
+  88. AutoSAMP.getRaceCheckpointType() /* Возвращает тип чекпоинта */
+  89. AutoSAMP.getRaceCheckpointSize() /* Возвращает размер чекпоинта */
+  90. AutoSAMP.getRaceCheckpointPos() /* Возвращает координаты чекпоинта */
+  91. AutoSAMP.setRaceCheckpoint(type, fX, fY, fZ, fXNext, fYNext, fZNext, fSize) /* Устанавливает чекпоинт (type - тип чекпоинта, fX, fY, fZ - координаты, fXNext, fYNext, fZNext - следующие координаты, fSize - размер чекпоинта) */
+  92. AutoSAMP.toggleScoreboard(toggle) /* Открывает список игроков (toggle - 0 выключить, 1 включить) */
+  93. AutoSAMP.toggleChatInput(toggle) /* Открывает чат (toggle - 0 выключить, 1 включить) */
+  94. AutoSAMP.getWeatherID() /* Возвращает ID погоды */
+  95. AutoSAMP.getWeaponID(slot) /* Возвращает ID оружия в слоте */
+  96. AutoSAMP.isPlayerFrozen() /* Проверяет заморожен ли локальный игрок */
+  97. AutoSAMP.getPlayerPed(playerID) /* Возвращает PED игрока по ID (playerID - ID игрока) */
+  98. AutoSAMP.setPlayerAttachedObject(slot, modelID, bone, xPos, yPos, zPos, xRot, yRot, zRot, xScale, yScale, zScale, color1, color2) /* Визуально устанавливает объект на локального игрока (slot - слот 0-9, modelID - ID объекта, bone - расположение на игроке, xPos, yPos, zPos - смещение, xRot, yRot, zRot - поворот, xScale, yScale, zScale - размер, color1, color2 - цвета) */
+  99. AutoSAMP.setRemotePlayerAttachedObject(playerID, slot, modelID, bone, xPos, yPos, zPos, xRot, yRot, zRot, xScale, yScale, zScale, color1, color2) /* Визуально устанавливает объект на игрока (playerID - ID игрока, slot - слот 0-9, modelID - ID объекта, bone - расположение на игроке, xPos, yPos, zPos - смещение, xRot, yRot, zRot - поворот, xScale, yScale, zScale - размер, color1, color2 - цвета) */
+  100. AutoSAMP.quitGame() /* Закрывает игру */
+  101. AutoSAMP.createTextLabel(text, color, xPos, yPos, zPos, drawDistance, testLOS, playerID, vehicleID) /* Визуально создает 3D текст на карте (text - текст, color - цвет текста, xPos, yPos, zPos - координаты текста, drawDistance - дальность прорисовки, testLOS := 0, playerID - ID игрока, vehicleID - ID транспорта) */
 ```
 
 ## Дополнительная информация

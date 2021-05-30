@@ -147,6 +147,28 @@ AutoSAMP - библиотека предназначенная для работ
   121. AutoSAMP.getPickupModel(modelID) /* Возвращает пикап по модели (modelID - модель пикапа) */
   122. AutoSAMP.getClosestPickupModel() /* Возвращает ближайщую модель пикапа */
   123. AutoSAMP.getDistanceToPickup(modelID) /* Возвращает расстояние до модели пикапа (modelID - модель пикапа) */
+  124. AutoSAMP.isPlayerUsingCell(playerID) /* Проверяет использует ли игрок слот (playerID - ID игрока) */
+  125. AutoSAMP.isNPC(playerID) /* Проверяет ID на NPC (playerID - ID игрока) */
+  126. AutoSAMP.getGameState() /* Возвращает состояние игры */
+  127. AutoSAMP.getPlayerFightingStyle() /* Возвращает боевой стиль локального игрока */
+  128. AutoSAMP.setCameraPosX(fAngle) /* Поворачивает камеру (fAngle - положение камеры) */
+  129. AutoSAMP.getWeaponIDByName(weaponName) /* Возвращает ID оружия (weaponName - название оружия) */
+  130. AutoSAMP.getWeaponName(weaponID) /* Возвращает название оружия по ID (weaponID - ID оружия) */
+  131. AutoSAMP.getPlayerAttachedObject(slot) /* Возвращает ID аксессуара (slot - слот аксессуара) */
+  132. AutoSAMP.getPlayerAttachedObjects() /* Возвращает аксессуары локального игрока */
+  133. AutoSAMP.getPlayerAttachedObjectPos(slot) /* Возвращает смещение аксессуара (slot - слот аксессуара) */
+  134. AutoSAMP.clearPlayerAttachedObject(slot) /* Удаляет аксуссуар (slot - слот аксессуара) */
+  135. AutoSAMP.createTextDraw(text, xPos, yPos, letterColor := 0xFFFFFFFF, font := 3, letterWidth := 0.4, letterHeight := 1, shadowSize := 0, outline := 1, shadowColor := 0xFF000000, box := 0, boxColor := 0xFFFFFFFF, boxSizeX := 0.0, boxSizeY := 0.0, left := 0, right := 0, center := 1, proportional := 1, modelID := 0, xRot := 0.0, yRot := 0.0, zRot := 0.0, zoom := 1.0, color1 := 0xFFFF, color2 := 0xFFFF) /* Создает текстдрав */
+  136. AutoSAMP.deleteTextDraw(textDrawID) /* Удаляет текстдрав (textDrawID - ID текстдрава) */
+  137. AutoSAMP.getTextDrawBySubstring(substring) /* Возвращает текстдрав (substring - содержимое) */
+  138. AutoSAMP.getTextDrawPos(textDrawID) /* Возвращает расположение текстдрава (textDrawID - ID текстдрава) */
+  139. AutoSAMP.moveTextDraw(textDrawID, xPos, yPos) /* Меняет расположение текстдрава (textDrawID - ID текстдрава, xPos, yPos - расположение текстдрава) */
+  140. AutoSAMP.resizeTextDraw(textDrawID, letterWidth, letterHeight) /* Меняет размер текстдрава (textDrawID - ID текстдрава, letterWidth - ширина, letterHeight - высота) */
+  141. AutoSAMP.saveGTASettings() /* Сохраняет настройки игры */
+  142. AutoSAMP.playAudioEvent(eventID) /* Проигрывает звуковое событие (eventID - ID звукового события) */
+  143. AutoSAMP.getCity(x, y, z) /* Возвращает город (x, y, z - координаты) */
+  144. AutoSAMP.getZone(x, y, z) /* Возвращает зону (x, y, z - координаты) */
+  145. AutoSAMP.getIpInfo(IP) /* Возвращает данные IP */
 ```
 
 ## Дополнительная информация

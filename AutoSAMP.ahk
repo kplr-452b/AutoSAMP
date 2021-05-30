@@ -1,4 +1,4 @@
-global AUTOSAMP_VERSION := 1.2
+global AUTOSAMP_VERSION := 1.3
 
 global GTA_CPED_PTR := 0xB6F5F0
 global GTA_VEHICLE_PTR := 0xBA18FC
@@ -7,11 +7,14 @@ global SAMP_MAX_PLAYERS          := 1004
 global SAMP_MAX_VEHICLES     := 2000
 global SERVER_SPEED_KOEFF	 := 1.425
 global SAMP_MAX_TEXTLABELS					:= 2048
+global SAMP_MAX_OBJECTS := 1000
+global SAMP_MAX_PICKUPS := 4096
 
 global SAMP_CNETGAME := [0x26E8DC]
     global SAMP_CNETGAME_HOSTADDRESS := [0x30]
     global SAMP_CNETGAME_HOSTNAME := [0x131]
     global SAMP_CNETGAME_PORT := [0x235]
+    global SAMP_CNETGAME_LASTCONNECTATTEMPT := [0x3D1]
     global SAMP_CNETGAME_UPDATEPLAYERS := [0x8BA0]
 
 global SAMP_CAUDIOSTREAM := [0x12E68C]
@@ -66,6 +69,8 @@ global SAMP_POOLS := [0x3DE]
     global SAMP_POOLS_PLAYER := [0x8]
     global SAMP_POOLS_VEHICLE := [0xC]
     global SAMP_POOLS_TEXTLABEL := [0x1C]
+    global SAMP_POOLS_PICKUP := [0x10]
+    global SAMP_POOLS_OBJECT := [0x14]
         global SAMP_POOLS_PLAYER_LARGESTID := [0x0]
         global SAMP_POOLS_PLAYER_LOCALPLAYER_PING := [0x2F14]
         global SAMP_POOLS_PLAYER_LOCALPLAYER_SCORE := [0x2F18]
@@ -147,6 +152,12 @@ global playerTick							:= 0
 global oPlayers								:= ""
 global vehicleTick							:= 0
 global oVehicles							:= ""
+global textLabelTick						:= 0
+global oTextLabels							:= []
+global objectTick							:= 0
+global oObjects								:= []
+global pickupTick							:= 0
+global oPickups								:= []
 
 class AutoSAMP 
 {
@@ -739,13 +750,6 @@ class AutoSAMP
 	    return playerID < 0 || playerID >= SAMP_MAX_PLAYERS || !AutoSAMP.checkHandles() ? 0x0 : AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_REMOTEPLAYER[AutoSAMP.SAMP_VERSION] + playerID * 4, 0x0, 0x0, 0x2A4])
     }
 
-    getVehicleMaxSpeed(modelID) {
-	    if (!AutoSAMP.checkHandles())
-		    return false
-
-	    return AutoSAMP.__READMEM(AutoSAMP.hGTA, 0xC2BA60, [(modelID - 400) * 0xE0], "Float")
-    }
-
     setPlayerAttachedObject(slot, modelID, bone, xPos, yPos, zPos, xRot, yRot, zRot, xScale := 1, yScale := 1, zScale := 1, color1 := 0x0, color2 := 0x0) {
 	    if (!AutoSAMP.checkHandles() || !(dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION], 0x8])))
 		    return false
@@ -818,6 +822,494 @@ class AutoSAMP
 
 	    return -1
     }
+
+    ; VERSION 1.3
+    getConnectionTicks() {
+	    return !AutoSAMP.checkHandles() ? 0 : DllCall("GetTickCount") - AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_CNETGAME_LASTCONNECTATTEMPT[AutoSAMP.SAMP_VERSION]], "UInt")
+    }
+
+    getRunningTime() {
+	    return !AutoSAMP.checkHandles() ? 0 : AutoSAMP.__READMEM(AutoSAMP.hGTA, 0xB610E1, [0x0], "UInt") / 4
+    }
+
+    getTextLabelBySubstring(string) {
+	    if (!AutoSAMP.updateTextLabels())
+		    return ""
+
+	    for i, o in oTextLabels {
+		    if (InStr(o.TEXT, string))
+			    return o.TEXT
+	    }
+
+	    return ""
+    }
+
+    updateTextLabels() {
+	    if (!AutoSAMP.checkHandles())
+		    return false
+	
+	    if (textLabelTick + 200 > A_TickCount)
+		    return true
+	
+	    oTextLabels := []
+	    dwTextLabels := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_TEXTLABEL[AutoSAMP.SAMP_VERSION]])
+	    if (!dwTextLabels)
+		    return false
+
+	    Loop, % SAMP_MAX_TEXTLABELS {
+		    i := A_Index - 1
+
+		    if (!AutoSAMP.__DWORD(AutoSAMP.hGTA, dwTextLabels, [0xE800 + i * 4]))
+			    continue
+		
+		    dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, dwTextLabels, [i * 0x1D])
+		    if (!dwAddress)
+			    continue
+
+		    string := AutoSAMP.__READSTRING(AutoSAMP.hGTA, dwAddress, [0x0], 256)
+		    if (string == "")
+			    string := AutoSAMP.__READSTRING(AutoSAMP.hGTA, dwAddress, [0x0], AutoSAMP.getDialogTextSize(dwAddress))
+
+		    if (string == "")
+			    continue
+
+		    fX := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwTextLabels, [i * 0x1D + 0x8], "Float")
+		    fY := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwTextLabels, [i * 0x1D + 0xC], "Float")
+		    fZ := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwTextLabels, [i * 0x1D + 0x10], "Float")
+		    wVehicleID := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwTextLabels, [i * 0x1D + 0x1B], "UShort")
+		    wPlayerID := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwTextLabels, [i * 0x1D + 0x19], "UShort")
+		
+		    oTextLabels.Push(Object("ID", i, "TEXT", string, "XPOS", fX, "YPOS", fY, "ZPOS", fZ, "VEHICLEID", wVehicleID, "PLAYERID", wPlayerID, "VISIBLE", AutoSAMP.__READMEM(AutoSAMP.hGTA, dwTextLabels, [i * 0x1D + 0x18], "UChar"), "DISTANCE", AutoSAMP.__READMEM(AutoSAMP.hGTA, dwTextLabels, [i * 0x1D + 0x14], "Float")))
+	    }
+
+	    textLabelTick := A_TickCount
+	    return true
+    }
+
+    updateTextLabel(textLabelID, text) {
+	    if (textLabelID < 0 || textLabelID > 2047 || !AutoSAMP.checkHandles())
+		    return false
+
+	    return AutoSAMP.__WRITESTRING(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_TEXTLABEL[AutoSAMP.SAMP_VERSION], textLabelID * 0x1D, 0x0], text)
+    }
+
+    deleteTextLabel(ByRef textLabelID) {
+	    if (textLabelID < 0 || !AutoSAMP.checkHandles()) {
+		    textLabelID := -1
+		    return -1
+	    }
+
+	    if (AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + 0x12D0, [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_TEXTLABEL[AutoSAMP.SAMP_VERSION]])], ["i", textLabelID]], false, true)) {
+		    textLabelID := -1
+		    return -1
+	    }
+
+	    return textLabelID
+    }
+
+    printPlayerTextLabels() {
+	    if (!AutoSAMP.updateTextLabels())
+		    return false
+
+	    for i, o in oTextLabels {
+		    if (o.TEXT != "" && o.TEXT != " " && o.PLAYERID != 0xFFFF)
+			    AutoSAMP.addChatMessage("{FFFF00}ID: " o.ID ", Text: " o.TEXT ", " o.PLAYERID)
+	    }
+
+	    return true
+    }
+
+    printTextLabels() {
+	    if (!AutoSAMP.updateTextLabels())
+		    return false
+
+	    for i, o in oTextLabels {
+		    AutoSAMP.addChatMessage("{FFFF00}ID: " o.ID ", " o.XPOS ", " o.YPOS ", " o.ZPOS ", ")
+		    AutoSAMP.addChatMessage("Text: " o.TEXT)
+	    }
+
+	    AutoSAMP.addChatMessage("TextLabel Count: " i)
+	    return true
+    }
+
+    countLabels() {
+	    return !AutoSAMP.updateTextLabels() ? -1 : oTextLabels.Length()
+    }
+
+    getPlayerAttachedTextLabel(playerID) {
+	    if (!AutoSAMP.checkHandles() || !AutoSAMP.updateTextLabels())
+		    return false
+
+	    for i, o in oTextLabels {
+		    if (playerID == o.PLAYERID)
+			    return o
+	    }
+
+	    return false
+    }
+
+    getPlayerAttachedTextLabels(playerID) {
+	    if (!AutoSAMP.checkHandles() || !AutoSAMP.updateTextLabels())
+		    return false
+
+	    labels := []
+
+	    for i, o in oTextLabels {
+		    if (playerID == o.PLAYERID)
+			    labels.Push(o)
+	    }
+
+	    return labels
+    }
+
+    getLabelBySubstring(text := "") {
+	    if (!AutoSAMP.updateTextLabels())
+		    return 0
+	
+	    for i, o in oTextLabels {
+		    if (text != "" && InStr(o.TEXT, text) == 0)
+			    continue
+
+		    return o
+	    }
+
+	    return ""
+    }
+
+    getNearestLabel(text := "") {
+	    if (!AutoSAMP.updateTextLabels())
+		    return 0
+	
+	    nearest := 0
+	    dist := -1
+	    pos1 := AutoSAMP.getPlayerPos()
+
+	    for i, o in oTextLabels {
+		    if (text != "" && !InStr(o.TEXT, text))
+			    continue
+
+		    newDist := AutoSAMP.getDistance(pos1, [o.XPOS, o.YPOS, o.ZPOS])
+		    if (dist == -1 || newDist < dist) {
+			    dist := newDist
+			    nearest := o
+		    }
+	    }
+
+	    return nearest
+    }
+
+    getNearestLabelDistance(text := "") {
+	    if(!AutoSAMP.updateTextLabels())
+		    return 0
+	
+	    nearest := 0
+	    dist := 5000
+	    pos1 := AutoSAMP.getPlayerPos()
+
+	    For i, o in oTextLabels
+	    {
+		    if (text != "" && !InStr(o.TEXT, text))
+			    continue
+
+		    pos2 := [o.XPOS, o.YPOS, o.ZPOS]
+
+		    dist2 := AutoSAMP.getDistance(pos1, pos2)
+
+		    if (dist2 < dist) {
+			    dist := dist2
+			    nearest := o
+		    }
+	    }
+
+	    return [nearest, dist]
+    }
+
+    createObject(modelID, xPos, yPos, zPos, xRot, yRot, zRot, drawDistance := 0) {
+	    if (!(dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_OBJECT[AutoSAMP.SAMP_VERSION]])) || AutoSAMP.__DWORD(AutoSAMP.hGTA, dwAddress, [0x0]) == SAMP_MAX_OBJECTS)
+		    return -1
+
+	    Loop, % SAMP_MAX_OBJECTS - 1 {
+		    i := SAMP_MAX_OBJECTS - A_Index
+		    if (AutoSAMP.__DWORD(AutoSAMP.hGTA, dwAddress, [i * 4 + 0x4]))
+			    continue
+
+		    return AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + 0x12580, [["i", dwAddress], ["i", i], ["i", modelID], ["f", xPos], ["f", yPos], ["f", zPos], ["f", xRot], ["f", yRot], ["f", zRot], ["f", drawDistance]], false, true) ? i : -1
+	    }
+
+	    return -1
+    }
+
+    destroyObject(ByRef objectID) {
+	    if (objectID < 0 || objectID > SAMP_MAX_OBJECTS - 1 || !AutoSAMP.checkHandles()) {
+		    objectID := -1
+		    return false
+	    }
+
+	    if (AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + 0x12500, [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_OBJECT[AutoSAMP.SAMP_VERSION]])], ["i", objectID]], false, true)) {
+		    objectID := -1
+		    return true
+	    }
+
+	    return false
+    }
+
+    getClosestObject() {
+	    if (!AutoSAMP.updateObjects())
+		    return ""
+
+	    dist := -1
+	    obj := ""
+	    pPos := AutoSAMP.getPlayerPos()
+
+	    for i, o in oObjects {
+		    if ((newDist := AutoSAMP.getDistance([o.XPOS, o.YPOS, o.ZPOS], pPos)) < dist || dist == -1) {
+			    obj := o
+			    dist := newDist
+		    }
+	    }
+
+	    return obj
+    }
+
+    getObjectPos(objectID) {
+	    if (!AutoSAMP.checkHandles() || !(dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_OBJECT[AutoSAMP.SAMP_VERSION]])) || !AutoSAMP.__DWORD(AutoSAMP.hGTA, dwAddress, [objectID * 4 + 0x4]))
+		    return false
+
+	    dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, dwAddress, [objectID * 0x4 + 0xFA4])
+	    xPos := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [0x10B], "Float")
+	    yPos := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [0x10F], "Float")
+	    zPos := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [0x113], "Float")
+
+	    xRot := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [0xAD], "Float")
+	    yRot := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [0xB1], "Float")
+	    zRot := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [0xB5], "Float")
+	    return [xPos, yPos, zPos, xRot, yRot, zRot]
+    }
+
+    printObjectPos(objectID) {
+	    pos := AutoSAMP.getObjectPos(objectID)
+	    if (pos == false)
+		    return AutoSAMP.addChatMessage("Object not found.")
+
+	    AutoSAMP.addChatMessage(pos[1] ", " pos[2] ", " pos[3] ", " pos[4] ", " pos[5] ", " pos[6])
+	    return true
+    }
+
+    getClosestObjectByModel(modelID) {
+	    if (!AutoSAMP.updateObjects())
+		    return ""
+
+	    dist := -1
+	    obj := ""
+	    pPos := AutoSAMP.getPlayerPos()
+
+	    for i, o in oObjects {
+		    if (o.MODELID != modelID)
+			    continue
+
+		    if ((newDist := AutoSAMP.getDistance([o.XPOS, o.YPOS, o.ZPOS], pPos)) < dist || dist == -1) {
+			    obj := o
+			    dist := newDist
+		    }
+	    }
+
+	    return obj
+    }
+
+    getClosestObjectModel() {
+	    if (!AutoSAMP.updateObjects())
+		    return ""
+
+	    dist := -1
+	    model := ""
+	    pPos := AutoSAMP.getPlayerPos()
+
+	    for i, o in oObjects {
+		    if ((newDist := AutoSAMP.getDistance([o.XPOS, o.YPOS, o.ZPOS], pPos)) < dist || dist == -1) {
+			    dist := newDist
+			    model := o.MODELID
+		    }
+	    }
+
+	    return model
+    }
+
+    printObjects() {
+	    if (!AutoSAMP.updateObjects())
+		    return false
+
+	    for i, o in oObjects
+		    AutoSAMP.addChatMessage("Index: " o.ID ", Model: " o.MODELID ", xPos: " o.XPOS ", yPos: " o.YPOS ", zPos: " o.ZPOS ", " o.DRAW)
+
+	    AutoSAMP.addChatMessage("Object Count: " i)
+
+	    return true
+    }
+
+    printObjectsByModelID(modelID) {
+	    if (!AutoSAMP.updateObjects())
+		    return false
+
+	    count := 0
+	    for i, o in oObjects {
+		    if (o.MODELID == modelID) {
+			    count++
+			    AutoSAMP.addChatMessage("ID: " o.ID ", Model: " o.MODELID ", xPos: " o.XPOS ", yPos: " o.YPOS ", zPos: " o.ZPOS)
+		    }
+	    }
+
+	    AutoSAMP.addChatMessage("Object Count: " count)
+
+	    return true
+    }
+
+    updateObjects() {
+	    if (!AutoSAMP.checkHandles())
+		    return false
+
+	    if (objectTick + 1000 > A_TickCount)
+		    return true
+
+	    oObjects := []
+	    objectTick := A_TickCount
+
+	    dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_OBJECT[AutoSAMP.SAMP_VERSION]])
+	    if (!dwAddress)
+		    return false
+	
+	    count := AutoSAMP.__DWORD(AutoSAMP.hGTA, dwAddress, [0x0])
+
+	    Loop, % SAMP_MAX_OBJECTS {
+		    i := A_Index - 1
+		
+		    if (!AutoSAMP.__DWORD(AutoSAMP.hGTA, dwAddress, [i * 4 + 0x4]))
+			    continue
+
+		    dwObject := AutoSAMP.__DWORD(AutoSAMP.hGTA, dwAddress, [i * 0x4 + 0xFA4])
+		    oObjects.Push(Object("ID", i, "MODELID", AutoSAMP.__DWORD(AutoSAMP.hGTA, dwObject, [0x4E]), "XPOS", AutoSAMP.__READMEM(AutoSAMP.hGTA, dwObject, [0x5C], "Float"), "YPOS", AutoSAMP.__READMEM(AutoSAMP.hGTA, dwObject, [0x60], "Float"), "ZPOS", AutoSAMP.__READMEM(AutoSAMP.hGTA, dwObject, [0x64], "Float"), "DRAW", AutoSAMP.__READMEM(AutoSAMP.hGTA, dwObject, [0x53], "Float")))
+
+		    count--
+		    if (count <= 0)
+			    break
+	    }
+
+	    return true
+    }
+
+    createPickup(modelID, type, xPos, yPos, zPos) {
+	    if (!AutoSAMP.checkHandles() || !(dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PICKUP[AutoSAMP.SAMP_VERSION]])))
+		    return -1
+
+	    Loop, % SAMP_MAX_PICKUPS {
+		    if (AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [(A_Index - 1) * 4 + 0x4004], "Int") > 0)
+			    continue
+
+		    VarSetCapacity(struct, 20, 0)
+		    NumPut(modelID, &struct, 0, "UInt")
+		    NumPut(type, &struct, 4, "UInt")
+		    NumPut(xPos, &struct, 8, "Float")
+		    NumPut(yPos, &struct, 12, "Float")
+		    NumPut(zPos, &struct, 16, "Float")
+		    return !AutoSAMP.__WRITERAW(AutoSAMP.hGTA, AutoSAMP.pMemory + 1024, &struct, 20) ? -1 : AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + 0x12F20, [["i", dwAddress], ["i", AutoSAMP.pMemory + 1024], ["i", A_Index - 1]] , false, true) ? A_Index - 1 : -1
+	    }
+
+	    return -1
+    }
+
+    deletePickup(ByRef pickupID) {
+	    if (pickupID < 0 || pickupID > SAMP_MAX_PICKUPS - 1 || !AutoSAMP.checkHandles())
+		    return false
+
+	    if (AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + 0x12FD0, [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PICKUP[AutoSAMP.SAMP_VERSION]])], ["i", pickupID]], false, true)) {
+		    pickupID := -1
+		    return true
+	    }
+
+	    return false
+    }
+
+    getPickupModel(modelID) {
+	    if (!AutoSAMP.updatePickups())
+		    return ""
+
+	    for i, o in oPickups {
+		    if (o.MODELID == modelID)
+			    return o
+	    }
+
+	    return ""
+    }
+
+    getClosestPickupModel() {
+	    if (!AutoSAMP.updatePickups())
+		    return -1
+
+	    dist := -1
+	    model := 0
+	    pPos := AutoSAMP.getPlayerPos()
+
+	    for i, o in oPickups {
+		    if ((newDist := AutoSAMP.getDistance([o.XPOS, o.YPOS, o.ZPOS], pPos)) < dist || dist == -1) {
+			    dist := newDist
+			    model := o.MODELID
+		    }
+	    }
+
+	    return model
+    }
+
+    getDistanceToPickup(modelID) {
+	    if (!AutoSAMP.updatePickups())
+		    return -1
+
+	    dist := -1
+	    pPos := AutoSAMP.getPlayerPos()
+
+	    for i, o in oPickups {
+		    if (o.MODELID != modelID)
+			    continue
+
+		    if ((newDist := AutoSAMP.getDistance([o.XPOS, o.YPOS, o.ZPOS], pPos)) < dist || dist == -1)
+			    dist := newDist
+	    }
+
+	    return dist
+    }
+
+    printPickups() {
+	    if (!AutoSAMP.updatePickups())
+		    return false
+
+	    for i, o in oPickups
+		    AutoSAMP.addChatMessage("ID: " o.ID ", Model: " o.MODELID ", Type: " o.TYPE ", xPos: " o.XPOS ", yPos: " o.YPOS ", zPos: " o.ZPOS)
+
+	    AutoSAMP.addChatMessage("Pickup Count: " i)
+	    return true
+    }
+
+    updatePickups() {
+	    if (pickupTick + 200 > A_TickCount)
+		    return true
+
+	    if (!AutoSAMP.checkHandles() || !(dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PICKUP[AutoSAMP.SAMP_VERSION]])) || (pickupCount := AutoSAMP.__DWORD(AutoSAMP.hGTA, dwAddress, [0x0])) <= 0)
+		    return false
+
+	    oPickups := []
+	    Loop, % SAMP_MAX_PICKUPS {
+		    pickupID := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [(i := A_Index - 1) * 4 + 0x4004], "Int")
+		    if (pickupID < 0)
+			    continue
+
+		    pickupCount--
+		    oPickups.Push(Object("ID", pickupID, "MODELID", AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [i * 0x14 + 0xF004], "Int"), "TYPE", AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [i * 0x14 + 0xF008], "Int"), "XPOS", AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [i * 0x14 + 0xF00C], "Float"), "YPOS", AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [i * 0x14 + 0xF010], "Float"), "ZPOS", AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [i * 0x14 + 0xF014], "Float")))
+		    if (pickupCount <= 0)
+			    break
+	    }
+
+	    pickupTick := A_TickCount
+	    return true
+    }
+
 
     ; [-----------------------------------------------------------------------------------------------------]
     

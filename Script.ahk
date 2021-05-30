@@ -6,7 +6,7 @@
 
 #IfWinActive, GTA:SA:MP
 
-global AutoSAMP := new AutoSAMP("GTA:SA:MP", "samp.DLL")
+global AutoSAMP := new AutoSAMP()
 
 Numpad0::
 {  

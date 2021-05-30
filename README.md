@@ -125,6 +125,28 @@ AutoSAMP - библиотека предназначенная для работ
   99. AutoSAMP.setRemotePlayerAttachedObject(playerID, slot, modelID, bone, xPos, yPos, zPos, xRot, yRot, zRot, xScale, yScale, zScale, color1, color2) /* Визуально устанавливает объект на игрока (playerID - ID игрока, slot - слот 0-9, modelID - ID объекта, bone - расположение на игроке, xPos, yPos, zPos - смещение, xRot, yRot, zRot - поворот, xScale, yScale, zScale - размер, color1, color2 - цвета) */
   100. AutoSAMP.quitGame() /* Закрывает игру */
   101. AutoSAMP.createTextLabel(text, color, xPos, yPos, zPos, drawDistance, testLOS, playerID, vehicleID) /* Визуально создает 3D текст на карте (text - текст, color - цвет текста, xPos, yPos, zPos - координаты текста, drawDistance - дальность прорисовки, testLOS := 0, playerID - ID игрока, vehicleID - ID транспорта) */
+  102. AutoSAMP.getConnectionTicks() /* Возвращает время сессии игры */
+  103. AutoSAMP.getRunningTime() /* Возвращает длительность запуска игры */
+  104. AutoSAMP.getTextLabelBySubstring(string) /* Возвращает содержимое 3D текста по тексту (string - текст) */
+  105. AutoSAMP.updateTextLabel(textLabelID, text) /* Обновляет содержимое 3D текста (textLabelID - ID 3D текста, text - текст) */
+  106. AutoSAMP.deleteTextLabel(textLabelID) /* Удаляет 3D текст (textLabelID - ID 3D текста) */
+  107. AutoSAMP.countLabels() /* Возвращает количество 3D текста */
+  108. AutoSAMP.getPlayerAttachedTextLabel(playerID) /* Возвращает 3D текст, прикрепленный к игроку (playerID - ID игрока) */
+  109. AutoSAMP.getPlayerAttachedTextLabels(playerID) /* Возвращает все 3D тексты, прикрепленные к игроку (playerID - ID игрока) */
+  110. AutoSAMP.getLabelBySubstring(text) /* Возвращает 3D текст (text - содержание) */
+  111. AutoSAMP.getNearestLabel(text) /* Возвращает ближайщий 3D текст (text - содержание) */
+  112. AutoSAMP.getNearestLabelDistance(text) /* Возвращает расстояние до ближайщего 3D текста (text - содержание) */
+  113. AutoSAMP.createObject(modelID, xPos, yPos, zPos, xRot, yRot, zRot, drawDistance) /* Визуально создает объект (modelID - модель обхекта, xPos, yPos, zPos - координаты объекта, xRot, yRot, zRot - поворот объекта, drawDistance - дальность прорисовки) */
+  114. AutoSAMP.destroyObject(objectID) /* Удаляет объект (objectID - ID объекта) */
+  115. AutoSAMP.getClosestObject() /* Возвращает ближайщий объект */
+  116. AutoSAMP.getObjectPos(objectID) /* Возвращает координаты объекта (objectID - ID объекта) */
+  117. AutoSAMP.getClosestObjectByModel(modelID) /* Возвращает ближайщий объект с определенной моделью (modelID - модель объекта) */
+  118. AutoSAMP.getClosestObjectModel() /* Возвращает ближайщую модель объекта */
+  119. AutoSAMP.createPickup(modelID, type, xPos, yPos, zPos) /* Создает пикап (modelID - модель пикапа, type - тип пикапа, xPos, yPos, zPos - координаты пикапа) */
+  120. AutoSAMP.deletePickup(pickupID) /* Удаляет пикап (pickupID - ID пикапа) */
+  121. AutoSAMP.getPickupModel(modelID) /* Возвращает пикап по модели (modelID - модель пикапа) */
+  122. AutoSAMP.getClosestPickupModel() /* Возвращает ближайщую модель пикапа */
+  123. AutoSAMP.getDistanceToPickup(modelID) /* Возвращает расстояние до модели пикапа (modelID - модель пикапа) */
 ```
 
 ## Дополнительная информация

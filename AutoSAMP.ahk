@@ -1,4 +1,4 @@
-global AUTOSAMP_VERSION := 1.1
+global AUTOSAMP_VERSION := 1.2
 
 global GTA_CPED_PTR := 0xB6F5F0
 global GTA_VEHICLE_PTR := 0xBA18FC
@@ -6,6 +6,7 @@ global GTA_VEHICLE_PTR := 0xBA18FC
 global SAMP_MAX_PLAYERS          := 1004
 global SAMP_MAX_VEHICLES     := 2000
 global SERVER_SPEED_KOEFF	 := 1.425
+global SAMP_MAX_TEXTLABELS					:= 2048
 
 global SAMP_CNETGAME := [0x26E8DC]
     global SAMP_CNETGAME_HOSTADDRESS := [0x30]
@@ -32,6 +33,8 @@ global SAMP_CCHAT_EDITBOX := [0x26E8F4]
 global SAMP_CINPUT := [0x26E8CC]
     global SAMP_CINPUT_SEND := [0x69190]
     global SAMP_CINPUT_INPUT := [0x1565]
+    global SAMP_CINPUT_CLOSE := [0x68E10]
+    global SAMP_CINPUT_OPEN := [0x68D10]
 
 global SAMP_CLOCALPLAYER := [0x4A80]
     global SAMP_CLOCALPLAYER_CURRENTVEHICLE := [0xFC]
@@ -56,10 +59,13 @@ global SAMP_CDIALOG := [0x26E898]
 
 global SAMP_CSCOREBOARD := [0x26E894]
     global SAMP_CSCOREBOARD_ISENABLED := [0x0]
+    global SAMP_CSCOREBOARD_CLOSE := [0x6E270]
+    global SAMP_CSCOREBOARD_ENABLE := [0x6EC80]
 
 global SAMP_POOLS := [0x3DE]
     global SAMP_POOLS_PLAYER := [0x8]
     global SAMP_POOLS_VEHICLE := [0xC]
+    global SAMP_POOLS_TEXTLABEL := [0x1C]
         global SAMP_POOLS_PLAYER_LARGESTID := [0x0]
         global SAMP_POOLS_PLAYER_LOCALPLAYER_PING := [0x2F14]
         global SAMP_POOLS_PLAYER_LOCALPLAYER_SCORE := [0x2F18]
@@ -74,11 +80,21 @@ global SAMP_POOLS := [0x3DE]
             global SAMP_POOLS_PLAYER_REMOTEPLAYER_DATA := [0x0]
 
 global SAMP_CGAME := [0x26E8F4]
+    global SAMP_CGAME_RACECHECKPOINT_POSITION := [0xC]
+    global SAMP_CGAME_RACECHECKPOINT_SIZE := [0x24]
+    global SAMP_CGAME_RACECHECKPOINT_TYPE := [0x28]
+    global SAMP_CGAME_RACECHECKPOINT_ENABLED := [0x29]
+    global SAMP_CGAME_CHECKPOINT_POSITION := [0x38]
+    global SAMP_CGAME_CHECKPOINT_SIZE := [0x44]
+    global SAMP_CGAME_CHECKPOINT_ENABLED := [0x50]
     global SAMP_CGAME_DISPLAYGAMETEXT := [0xA05D0]
+    global SAMP_CGAME_SETRACINGCHECKPOINT := [0xA19D0]
 
 global SAMP_CREMOTEPLAYER_VEHICLEID := [0xA]
 global SAMP_CREMOTEPLAYER_INCARTARGEDPOSITION := [0x12C]
 global SAMP_CREMOTEPLAYER_TEAM := [0x109]
+
+global SAMP_CPED_ADDACCESSORY := [0xB0280]
 
 
 global DIALOG_STYLE_MSGBOX			        := 0
@@ -603,10 +619,6 @@ class AutoSAMP
 	    return playerID < 0 || playerID >= SAMP_MAX_PLAYERS || !AutoSAMP.checkHandles() ? "" : [AutoSAMP.__READMEM(AutoSAMP.hGTA, (dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_REMOTEPLAYER[AutoSAMP.SAMP_VERSION] + playerID * 4, SAMP_POOLS_PLAYER_REMOTEPLAYER_DATA[AutoSAMP.SAMP_VERSION]])), [SAMP_CREMOTEPLAYER_INCARTARGEDPOSITION[AutoSAMP.SAMP_VERSION]], "Float"), AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwAddress, [SAMP_CREMOTEPLAYER_INCARTARGEDPOSITION[AutoSAMP.SAMP_VERSION] + 0x4], "Float"), AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [SAMP_CREMOTEPLAYER_INCARTARGEDPOSITION[AutoSAMP.SAMP_VERSION] + 0x8], "Float")]
     }
 
-    getPlayerTeamID(playerID) {
-	    return playerID < 0 || playerID >= SAMP_MAX_PLAYERS || !AutoSAMP.checkHandles() ? "" : AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_REMOTEPLAYER[AutoSAMP.SAMP_VERSION] + playerID * 4, SAMP_POOLS_PLAYER_REMOTEPLAYER_DATA[AutoSAMP.SAMP_VERSION], SAMP_CREMOTEPLAYER_TEAM[AutoSAMP.SAMP_VERSION]], "UChar")
-    }
-
     getTargetPed() {
 	    if(!AutoSAMP.checkHandles())
             return 0
@@ -636,7 +648,176 @@ class AutoSAMP
         return -1
     }
 
-    
+    ; VERSION 1.2
+    getGameScreenWidthHeight() {
+        if(!AutoSAMP.checkHandles())
+            return false
+
+        Width := AutoSAMP.readDWORD(AutoSAMP.hGTA, 0xC9C040)   
+        Height := AutoSAMP.readDWORD(AutoSAMP.hGTA, 0xC9C044)
+        return [Width, Height]
+    }
+
+    getVehiclePointer(vehicleID) {
+	    return !AutoSAMP.checkHandles() || vehicleID < 1 || vehicleID > SAMP_MAX_VEHICLES ? "" : AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_VEHICLE[AutoSAMP.SAMP_VERSION], vehicleID * 4 + 0x4FB4])
+    }
+
+    isCheckpointSet() {
+	    return AutoSAMP.checkHandles() && AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION], SAMP_CGAME_CHECKPOINT_ENABLED[AutoSAMP.SAMP_VERSION]], "UChar")
+    }
+
+    toggleCheckpoint(toggle := true) {
+	    return AutoSAMP.checkHandles() && AutoSAMP.__WRITEMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION], SAMP_CGAME_CHECKPOINT_ENABLED[AutoSAMP.SAMP_VERSION]], toggle ? 1 : 0 ,"UChar")
+    }
+
+    isRaceCheckpointSet() {
+	    return AutoSAMP.checkHandles() && AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION], SAMP_CGAME_RACECHECKPOINT_ENABLED[AutoSAMP.SAMP_VERSION]], "UChar")
+    }
+
+    toggleRaceCheckpoint(toggle := true) {
+	    return AutoSAMP.checkHandles() && AutoSAMP.__WRITEMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION], SAMP_CGAME_RACECHECKPOINT_ENABLED[AutoSAMP.SAMP_VERSION]], toggle ? 1 : 0 ,"UChar")
+    }
+
+    getRaceCheckpointType() {
+	    return !AutoSAMP.checkHandles() ? false : AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION], SAMP_CGAME_RACECHECKPOINT_TYPE[AutoSAMP.SAMP_VERSION]], "UChar")
+    }
+
+    getRaceCheckpointSize() {
+	    return !AutoSAMP.checkHandles() ? false : AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION], SAMP_CGAME_RACECHECKPOINT_SIZE[AutoSAMP.SAMP_VERSION]], "Float")
+    }
+
+    getRaceCheckpointPos() {
+	    if (!AutoSAMP.checkhandles())
+		    return ""
+
+	    dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION]])
+	    Loop, 6
+		    pos%A_Index% := AutoSAMP.__READMEM(AutoSAMP.hGTA, dwAddress, [SAMP_CGAME_RACECHECKPOINT_POSITION[AutoSAMP.SAMP_VERSION] + (A_Index - 1) * 4], "Float")
+
+	    return [pos1, pos2, pos3, pos4, pos5, pos6]
+    }
+
+    setRaceCheckpoint(type, fX, fY, fZ, fXNext, fYNext, fZNext, fSize := 3.0) {
+	    if (!AutoSAMP.checkHandles())
+		    return false
+
+	    VarSetCapacity(buf, 28, 0)
+	    NumPut(fX, buf, 0, "Float")
+	    NumPut(fY, buf, 4, "Float")
+	    NumPut(fZ, buf, 8, "Float")
+	    NumPut(fXNext, buf, 12, "Float")
+	    NumPut(fYNext, buf, 16, "Float")
+	    NumPut(fZNext, buf, 20, "Float")
+
+	    if (!AutoSAMP.__WRITERAW(AutoSAMP.hGTA, AutoSAMP.pMemory + 24, &buf, 28))
+		    return false
+
+	    return AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + SAMP_CGAME_SETRACINGCHECKPOINT[AutoSAMP.SAMP_VERSION], [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION]])], ["i", type], ["i", AutoSAMP.pMemory + 24], ["i", AutoSAMP.pMemory + 36], ["f", fSize]], false, true) && AutoSAMP.toggleRaceCheckpoint()
+    }
+
+    toggleScoreboard(toggle := 1) {
+	    return AutoSAMP.checkHandles() && (toggle ? AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + SAMP_CSCOREBOARD_ENABLE[AutoSAMP.SAMP_VERSION], [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CSCOREBOARD[AutoSAMP.SAMP_VERSION]])]], false, true) : AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + SAMP_CSCOREBOARD_CLOSE[AutoSAMP.SAMP_VERSION], [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CSCOREBOARD[AutoSAMP.SAMP_VERSION]])], ["i", 1]], false, true))
+    }
+
+    toggleChatInput(toggle := 1) {	
+	    return AutoSAMP.checkHandles() && AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + (toggle ? SAMP_CINPUT_OPEN[AutoSAMP.SAMP_VERSION] : SAMP_CINPUT_CLOSE[AutoSAMP.SAMP_VERSION]), [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CINPUT[AutoSAMP.SAMP_VERSION]])]], false, true)
+    }
+
+    getWeatherID() {
+	    return !AutoSAMP.checkHandles() ? "" : AutoSAMP.__READMEM(AutoSAMP.hGTA, 0xC81320, [0x0], "UShort")
+    }
+
+    getWeaponID(slot) {
+	    return (slot < 0 || slot > 12 || !AutoSAMP.checkHandles()) ? "" : AutoSAMP.__DWORD(AutoSAMP.hGTA, GTA_CPED_PTR, [0x0, 0x5A0 + slot * 0x1C])
+    }
+
+    isPlayerFrozen() {
+	    return AutoSAMP.checkHandles() && AutoSAMP.__READMEM(AutoSAMP.hGTA, GTA_CPED_PTR, [0x0, 0x42], "UChar")
+    }
+
+    getPlayerPed(playerID) {
+	    return playerID < 0 || playerID >= SAMP_MAX_PLAYERS || !AutoSAMP.checkHandles() ? 0x0 : AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_REMOTEPLAYER[AutoSAMP.SAMP_VERSION] + playerID * 4, 0x0, 0x0, 0x2A4])
+    }
+
+    getVehicleMaxSpeed(modelID) {
+	    if (!AutoSAMP.checkHandles())
+		    return false
+
+	    return AutoSAMP.__READMEM(AutoSAMP.hGTA, 0xC2BA60, [(modelID - 400) * 0xE0], "Float")
+    }
+
+    setPlayerAttachedObject(slot, modelID, bone, xPos, yPos, zPos, xRot, yRot, zRot, xScale := 1, yScale := 1, zScale := 1, color1 := 0x0, color2 := 0x0) {
+	    if (!AutoSAMP.checkHandles() || !(dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION], 0x8])))
+		    return false
+
+	    VarSetCapacity(struct, 52, 0)
+	    NumPut(modelID, &struct, 0, "UInt")
+	    NumPut(bone, &struct, 4, "UInt")
+
+	    NumPut(xPos, &struct, 8, "Float")
+	    NumPut(yPos, &struct, 12, "Float")
+	    NumPut(zPos, &struct, 16, "Float")
+
+	    NumPut(xRot, &struct, 20, "Float")
+	    NumPut(yRot, &struct, 24, "Float")
+	    NumPut(zRot, &struct, 28, "Float")
+
+	    NumPut(xScale, &struct, 32, "Float")
+	    NumPut(yScale, &struct, 36, "Float")
+	    NumPut(zScale, &struct, 40, "Float")
+
+	    NumPut(color1, &struct, 44, "UInt")
+	    NumPut(color2, &struct, 48, "UInt")
+
+	    return !AutoSAMP.__WRITERAW(AutoSAMP.hGTA, AutoSAMP.pMemory + 1024, &struct, 52) ? false : AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + SAMP_CPED_ADDACCESSORY[AutoSAMP.SAMP_VERSION], [["i", dwAddress], ["i", slot], ["i", AutoSAMP.pMemory + 1024]], false, true)
+    }
+
+    setRemotePlayerAttachedObject(playerID, slot, modelID, bone, xPos, yPos, zPos, xRot, yRot, zRot, xScale := 1, yScale := 1, zScale := 1, color1 := 0x0, color2 := 0x0) {
+	    if (!AutoSAMP.checkHandles() || !(dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_REMOTEPLAYER[AutoSAMP.SAMP_VERSION] + playerID * 4, 0x0])))
+		    return false
+
+	    if (!(dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, dwAddress, [0x0])))
+		    return false
+
+	    VarSetCapacity(struct, 52, 0)
+	    NumPut(modelID, &struct, 0, "UInt")
+	    NumPut(bone, &struct, 4, "UInt")
+
+	    NumPut(xPos, &struct, 8, "Float")
+	    NumPut(yPos, &struct, 12, "Float")
+	    NumPut(zPos, &struct, 16, "Float")
+
+	    NumPut(xRot, &struct, 20, "Float")
+	    NumPut(yRot, &struct, 24, "Float")
+	    NumPut(zRot, &struct, 28, "Float")
+
+	    NumPut(xScale, &struct, 32, "Float")
+	    NumPut(yScale, &struct, 36, "Float")
+	    NumPut(zScale, &struct, 40, "Float")
+
+	    NumPut(color1, &struct, 44, "UInt")
+	    NumPut(color2, &struct, 48, "UInt")
+
+	    return !AutoSAMP.__WRITERAW(AutoSAMP.hGTA, AutoSAMP.pMemory + 1024, &struct, 52) ? false : AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + SAMP_CPED_ADDACCESSORY[AutoSAMP.SAMP_VERSION], [["i", dwAddress], ["i", slot], ["i", AutoSAMP.pMemory + 1024]], false, true)
+    }
+
+    quitGame() {
+	    return AutoSAMP.checkHandles() && AutoSAMP.CALL(AutoSAMP.hGTA, 0x619B60, [["i", 0x1E], ["i", 0]])
+    }
+
+    createTextLabel(text, color, xPos, yPos, zPos, drawDistance := 46.0, testLOS := 0, playerID := 0xFFFF, vehicleID := 0xFFFF) {
+	    if (!AutoSAMP.checkHandles() || !(dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_TEXTLABEL[AutoSAMP.SAMP_VERSION]])))
+		    return -1
+
+	    Loop, % SAMP_MAX_TEXTLABELS {
+		    if (AutoSAMP.__DWORD(AutoSAMP.hGTA, dwAddress, [0xE800 + (SAMP_MAX_TEXTLABELS - A_Index) * 4]))
+			    continue
+
+		    return AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + 0x11C0, [["i", dwAddress], ["i", SAMP_MAX_TEXTLABELS - A_Index], ["s", text], ["i", color], ["f", xPos], ["f", yPos], ["f", zPos], ["f", drawDistance], ["i", testLOS], ["i", playerID], ["i", vehicleID]], false, true) ? SAMP_MAX_TEXTLABELS - A_Index : -1
+	    }
+
+	    return -1
+    }
 
     ; [-----------------------------------------------------------------------------------------------------]
     

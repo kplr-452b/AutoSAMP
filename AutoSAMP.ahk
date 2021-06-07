@@ -1,4 +1,4 @@
-global AUTOSAMP_VERSION := 1.4
+global AUTOSAMP_VERSION := 1.5
 
 global GTA_CPED_PTR := 0xB6F5F0
 global GTA_VEHICLE_PTR := 0xBA18FC
@@ -33,6 +33,9 @@ global SAMP_CCHAT := [0x26E8C8]
     global SAMP_CCHAT_SETPAGESIZE := [0x66B20]
     global SAMP_CCHAT_LOG := [0x67050]
     global SAMP_CCHAT_ADDENTRY := [0x67460]
+	global SAMP_CCHAT_PAGEUP := [0x66B50]
+	global SAMP_CCHAT_PAGEDOWN := [0x66BB0]
+	global SAMP_CCHAT_SCROLL := [0x66C40]
 
 global SAMP_CCHAT_EDITBOX := [0x26E8F4]
     global SAMP_CCHAT_EDITBOX_OFF := [0x61]
@@ -101,6 +104,8 @@ global SAMP_CGAME := [0x26E8F4]
     global SAMP_CGAME_CHECKPOINT_ENABLED := [0x50]
     global SAMP_CGAME_DISPLAYGAMETEXT := [0xA05D0]
     global SAMP_CGAME_SETRACINGCHECKPOINT := [0xA19D0]
+	global SAMP_CGAME_SETCURSORMODE := [0x9FFE0]
+	global SAMP_CGAME_ENABLEHUD := [0xA1680]
 
 global SAMP_CREMOTEPLAYER_VEHICLEID := [0xA]
 global SAMP_CREMOTEPLAYER_INCARTARGEDPOSITION := [0x12C]
@@ -602,7 +607,7 @@ class AutoSAMP
         AutoSAMP.SAMP_MODULE := sampModule
         AutoSAMP.SAMP_VERSION := 1
 
-        AutoSAMP.initilizationCommands()
+        AutoSAMP.initilizationCommands()			
     }
 
     addLog(szType, szText) {
@@ -2055,7 +2060,7 @@ class AutoSAMP
 		return "Unbekannt"
 	}
 
-	GetIpInfoRu(IP){
+	getIpInfo(IP) {
 		UrlDownloadToFile, % "http://api.2ip.ua/geo.xml?ip=" IP, ipinfo.xml
 		UrlDownloadToFile, % "http://api.2ip.ua/provider.xml?ip=" IP, infprov.xml
 		FileRead, ipinfo, *P65001 %A_ScriptDir%\ipinfo.xml
@@ -2069,6 +2074,41 @@ class AutoSAMP
 		;<< 1 - Страна 2 - Область 3 - Город 4 - latitude 5 - longitude 6 - Часовой пояс 7 - Ip Adrees с сервера 8 - Имя провайдера 9 - Сайт провайдера >>
 		return infip
 	}
+
+	; VERSION 1.5
+	getGravity() {
+		return !AutoSAMP.checkHandles() ? false : AutoSAMP.__READMEM(AutoSAMP.hGTA, 0x863984, [0x0], "Float")
+	}
+	
+	chatPageUp() {
+	    return AutoSAMP.checkHandles() && AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + SAMP_CCHAT_PAGEUP[AutoSAMP.SAMP_VERSION], [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CCHAT[AutoSAMP.SAMP_VERSION]])]], false, true)
+    }
+	
+	chatPageDown() {
+	    return AutoSAMP.checkHandles() && AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + SAMP_CCHAT_PAGEDOWN[AutoSAMP.SAMP_VERSION], [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CCHAT[AutoSAMP.SAMP_VERSION]])]], false, true)
+    }
+	
+	chatScroll(nDelta) {
+		return AutoSAMP.checkHandles() && AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + SAMP_CCHAT_SCROLL[AutoSAMP.SAMP_VERSION], [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CCHAT[AutoSAMP.SAMP_VERSION]])], ["i", nDelta]], false, true)
+	}
+	
+	setCursorMode(nMode) {
+		return AutoSAMP.checkHandles() && AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + SAMP_CGAME_SETCURSORMODE[AutoSAMP.SAMP_VERSION], [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION]])], ["i", nMode], ["i", 0]], false, true)
+	}
+	
+	enableHUD(bEnable) {
+		return AutoSAMP.checkHandles() && AutoSAMP.CALL(AutoSAMP.hGTA, AutoSAMP.dwSAMP + SAMP_CGAME_ENABLEHUD[AutoSAMP.SAMP_VERSION], [["i", AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CGAME[AutoSAMP.SAMP_VERSION]])], ["i", bEnable]], false, true)
+	}
+	
+	setPlayerName(playerID, name) {
+	    if (playerID < 0 || playerID >= SAMP_MAX_PLAYERS || !AutoSAMP.checkHandles() || AutoSAMP.getPlayerScore(playerID) == "")
+		    return ""
+
+	    if (AutoSAMP.__DWORD(AutoSAMP.hGTA, (dwAddress := AutoSAMP.__DWORD(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_POOLS[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER[AutoSAMP.SAMP_VERSION], SAMP_POOLS_PLAYER_REMOTEPLAYER[AutoSAMP.SAMP_VERSION] + playerID * 4])), [SAMP_POOLS_PLAYER_REMOTEPLAYER_SIZE[AutoSAMP.SAMP_VERSION]]) > 15)
+		    return AutoSAMP.__WRITESTRING(AutoSAMP.hGTA, dwAddress, [SAMP_POOLS_PLAYER_REMOTEPLAYER_NICK[AutoSAMP.SAMP_VERSION], 0x0], name)
+
+	    return AutoSAMP.__WRITESTRING(AutoSAMP.hGTA, dwAddress, [SAMP_POOLS_PLAYER_REMOTEPLAYER_NICK[AutoSAMP.SAMP_VERSION]], name)
+    }
 
     ; [-----------------------------------------------------------------------------------------------------]
     

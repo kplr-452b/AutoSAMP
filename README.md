@@ -169,6 +169,13 @@ AutoSAMP - библиотека предназначенная для работ
   143. AutoSAMP.getCity(x, y, z) /* Возвращает город (x, y, z - координаты) */
   144. AutoSAMP.getZone(x, y, z) /* Возвращает зону (x, y, z - координаты) */
   145. AutoSAMP.getIpInfo(IP) /* Возвращает данные IP */
+  146. AutoSAMP.getGravity() /* Возвращает гравитацию на сервере */
+  147. AutoSAMP.chatPageUp() /* Пролистывает чат вверх */
+  148. AutoSAMP.chatPageDown() /* Пролистывает чат вниз */
+  149. AutoSAMP.chatScroll(nDelta) /* Пролистывает чат (nDelta - дальность пролистывания) */
+  150. AutoSAMP.setCursorMode(nMode) /* Выставляет режим курсора (nMode - режим) */
+  151. AutoSAMP.enableHUD(bEnable) /* Включает/выключает HUD (bEnable - состояние) */
+  152. AutoSAMP.setPlayerName(playerID, name) /* Визуально меняет ник игрока (playerID - ID игрока, name - ник) */
 ```
 
 ## Дополнительная информация

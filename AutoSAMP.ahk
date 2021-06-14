@@ -1,4 +1,4 @@
-global AUTOSAMP_VERSION := 1.5
+global AUTOSAMP_VERSION := 1.6
 
 global GTA_CPED_PTR := 0xB6F5F0
 global GTA_VEHICLE_PTR := 0xBA18FC
@@ -20,6 +20,7 @@ global SAMP_CNETGAME := [0x26E8DC]
     global SAMP_CNETGAME_LASTCONNECTATTEMPT := [0x3D1]
 	global SAMP_CNETGAME_GAMESTATE := [0x3CD]
     global SAMP_CNETGAME_UPDATEPLAYERS := [0x8BA0]
+	global SAMP_CNETGAME_RESTART := [0xA1E0]
 
 global SAMP_CAUDIOSTREAM := [0x12E68C]
     global SAMP_CAUDIOSTREAM_STOP := [0x65DF0]
@@ -2109,6 +2110,122 @@ class AutoSAMP
 
 	    return AutoSAMP.__WRITESTRING(AutoSAMP.hGTA, dwAddress, [SAMP_POOLS_PLAYER_REMOTEPLAYER_NICK[AutoSAMP.SAMP_VERSION]], name)
     }
+	
+	; VERSION 1.6
+	GetCheckDialogButton() {
+    	if (AutoSAMP.isDialogOpen() == 1)
+    	{
+  			Loop
+  			{
+   				if (GetKeyState("LButton","P"))
+   				{
+    				Loop
+    				{
+     					if (AutoSAMP.isDialogButtonSelected(1) == 1)
+     					{
+      						while (AutoSAMP.isDialogOpen() = 0)
+                            	return 1
+     					}
+     					else if (GetKeyState("LButton","P"))
+     					{
+      						while (AutoSAMP.isDialogOpen() = 0)
+                            	return 1
+     					}
+     					else if (GetKeyState("Esc","P"))
+     					{
+     						while (AutoSAMP.isDialogOpen() = 0)
+                            	return 0
+     					}
+     					else if (GetKeyState("Enter","P"))
+     					{
+      						while (AutoSAMP.isDialogOpen() = 0)
+                            	return 1
+     					}
+     					else
+     					{
+      						while (AutoSAMP.isDialogOpen() = 0)
+                            	return 0
+     					}
+    				}
+   				}
+   				if (GetKeyState("Up","P") || GetKeyState("Down","P"))
+   				{
+    				Loop
+    				{
+     					if (AutoSAMP.isDialogButtonSelected(1) == 1)
+     					{
+      						while (AutoSAMP.isDialogOpen() = 0)
+                            	return 1
+     					}
+     					else if (GetKeyState("LButton","P"))
+     					{
+      						while (AutoSAMP.isDialogOpen() = 0)
+                            	return 1
+     					}
+     					else if (GetKeyState("Esc","P"))
+     					{
+      						while (AutoSAMP.isDialogOpen() = 0)
+                            	return 0
+     					}
+     					else if (GetKeyState("Enter","P"))
+     					{
+      						while (AutoSAMP.isDialogOpen() = 0)
+                            	return 1
+     					}
+     					else if (AutoSAMP.isDialogOpen() = 0)
+                        	return 0
+    				}
+   				}
+   				else if (GetKeyState("Esc", "P") && GetKeyState("Enter", "U"))
+   				{
+    				while (AutoSAMP.isDialogOpen() = 0)
+                    	return 0
+   				}
+   				else if (GetKeyState("Enter", "P") && GetKeyState("Esc", "U"))
+   				{
+    				while (AutoSAMP.isDialogOpen() = 0)
+                    	return 1
+   				}
+   				else if (GetKeyState("Enter", "P"))
+    				return 1
+   				else if (GetKeyState("Esc", "P"))
+                	return 0
+   				else if (AutoSAMP.isDialogOpen() = 0)
+                	return 1
+  			}
+    	}
+    	if (AutoSAMP.isDialogOpen() == 0)
+        	return 0
+	}
+
+	isDialogButtonSelected(btn := 1) {
+		return !AutoSAMP.checkHandles() ? -1 : AutoSAMP.__READMEM(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CDIALOG[AutoSAMP.SAMP_VERSION], SAMP_CDIALOG_LISTBOX[AutoSAMP.SAMP_VERSION], (btn == 1 ? 0x165 : 0x2C5)], "Byte")
+	}
+
+	nightVision(value) {
+		if (!AutoSAMP.checkHandles())
+			return false
+		if (value)
+			AutoSAMP.__WRITEMEM(AutoSAMP.hGTA, 0xC402B8, [0x0], 0x1)
+		else
+			AutoSAMP.__WRITEMEM(AutoSAMP.hGTA, 0xC402B8, [0x0], 0x0)
+	}
+
+	thermalVision(value) {
+		if (!AutoSAMP.checkHandles())
+			return false
+		if (value)
+			AutoSAMP.__WRITEMEM(AutoSAMP.hGTA, 0xC402B9, [0x0], 0x1)
+		else
+			AutoSAMP.__WRITEMEM(AutoSAMP.hGTA, 0xC402B9, [0x0], 0x0)
+	}
+
+	setIP(IP) {
+    	if(!AutoSAMP.checkHandles())
+        	return false
+
+		AutoSAMP.__WRITESTRING(AutoSAMP.hGTA, AutoSAMP.dwSAMP, [SAMP_CNETGAME[AutoSAMP.SAMP_VERSION], SAMP_CNETGAME_HOSTADDRESS[AutoSAMP.SAMP_VERSION]], IP)
+	}
 
     ; [-----------------------------------------------------------------------------------------------------]
     

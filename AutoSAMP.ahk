@@ -2112,7 +2112,7 @@ class AutoSAMP
     }
 	
 	; VERSION 1.6
-	GetCheckDialogButton() {
+	getCheckDialogButton() {
     	if (AutoSAMP.isDialogOpen() == 1)
     	{
   			Loop

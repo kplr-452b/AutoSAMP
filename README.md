@@ -176,6 +176,11 @@ AutoSAMP - библиотека предназначенная для работ
   150. AutoSAMP.setCursorMode(nMode) /* Выставляет режим курсора (nMode - режим) */
   151. AutoSAMP.enableHUD(bEnable) /* Включает/выключает HUD (bEnable - состояние) */
   152. AutoSAMP.setPlayerName(playerID, name) /* Визуально меняет ник игрока (playerID - ID игрока, name - ник) */
+  153. AutoSAMP.getCheckDialogButton() /* Возвращает номер последней нажатой кнопки диалога */
+  154. AutoSAMP.isDialogButtonSelected(btn) /* Проверяет выделенна ли эта кнопка (btn - номер кнопки (0, 1)) */
+  155. AutoSAMP.nightVision(value) /* Включает эффект ночного видения (value - состояние) */
+  156. AutoSAMP.thermalVision(value) /* Включает эффект теплового видения (value - состояние) */
+  157. AutoSAMP.setIP(IP) /* Меняет IP адрес (IP - адрес)  */
 ```
 
 ## Дополнительная информация

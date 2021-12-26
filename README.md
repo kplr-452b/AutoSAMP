@@ -157,7 +157,7 @@ AutoSAMP - библиотека предназначенная для работ
   131. AutoSAMP.getPlayerAttachedObject(slot) /* Возвращает ID аксессуара (slot - слот аксессуара) */
   132. AutoSAMP.getPlayerAttachedObjects() /* Возвращает аксессуары локального игрока */
   133. AutoSAMP.getPlayerAttachedObjectPos(slot) /* Возвращает смещение аксессуара (slot - слот аксессуара) */
-  134. AutoSAMP.clearPlayerAttachedObject(slot) /* Удаляет аксуссуар (slot - слот аксессуара) */
+  134. AutoSAMP.clearPlayerAttachedObject(slot) /* Удаляет аксессуар (slot - слот аксессуара) */
   135. AutoSAMP.createTextDraw(text, xPos, yPos, letterColor := 0xFFFFFFFF, font := 3, letterWidth := 0.4, letterHeight := 1, shadowSize := 0, outline := 1, shadowColor := 0xFF000000, box := 0, boxColor := 0xFFFFFFFF, boxSizeX := 0.0, boxSizeY := 0.0, left := 0, right := 0, center := 1, proportional := 1, modelID := 0, xRot := 0.0, yRot := 0.0, zRot := 0.0, zoom := 1.0, color1 := 0xFFFF, color2 := 0xFFFF) /* Создает текстдрав */
   136. AutoSAMP.deleteTextDraw(textDrawID) /* Удаляет текстдрав (textDrawID - ID текстдрава) */
   137. AutoSAMP.getTextDrawBySubstring(substring) /* Возвращает текстдрав (substring - содержимое) */
